@@ -16,6 +16,3 @@ class HomeController extends AbstractController {
         return $response;
     }
 }
-
-?>
-

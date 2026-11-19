@@ -7,7 +7,7 @@ use App\lib\Controllers\AbstractController;
 
 class Router {
 
-    private const string ROUTE_CONFIG_PATH = __DIR__ . '/../../config/routes.json';
+    private const string ROUTE_CONFIG_PATH = __DIR__ . '/../../../config/routes.json';
     private const string CONTROLLER_NAMESPACE = 'App\\Controllers\\';
     
     public function main(Request $request) {
@@ -97,5 +97,3 @@ class Router {
  
     
 }
-
-?>
