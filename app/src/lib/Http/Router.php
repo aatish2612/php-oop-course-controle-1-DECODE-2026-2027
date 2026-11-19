@@ -1,9 +1,9 @@
 <?php
 
 
-namespace App\Http;
+namespace App\lib\Http;
 
-use App\Controllers\AbstractController;
+use App\lib\Controllers\AbstractController;
 
 class Router {
 
