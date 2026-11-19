@@ -18,5 +18,10 @@
     "uri": "/contact",
     "method": "PATCH",
     "controller": "Contact\\UpdateContactController"
+  },
+  {
+    "uri": "/contact",
+    "method": "DELETE",
+    "controller": "Contact\\DeleteContactController"
   }
 ]
