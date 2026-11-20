@@ -9,25 +9,44 @@ class ContactStorage
 
     public function __construct()
     {
-        $this->dir = dirname(__DIR__, 2) . '/var/contacts';
+        $this->dir = __DIR__ . '/../../var/contacts';
         if (!is_dir($this->dir)) {
-            @mkdir($this->dir, 0777, true);
+            mkdir($this->dir, 0777, true);
         }
     }
 
-    // $partial = true pour le PATCH (une ou plusieurs clés), false pour le POST (les 3 obligatoires)
     public function validate(array $data, bool $partial = false): bool
     {
-        if ($data === []) return false;
-        if (array_diff(array_keys($data), self::FIELDS)) return false;
-        if (!$partial && array_diff(self::FIELDS, array_keys($data))) return false;
-        foreach ($data as $value) {
-            if (!is_string($value) || trim($value) === '') return false;
+        if (empty($data)) {
+            return false;
         }
+
+        foreach ($data as $key => $value) {
+            if (!in_array($key, self::FIELDS, true)) {
+                return false;
+            }
+            if (!is_string($value) || trim($value) === '') {
+                return false;
+            }
+        }
+
+        if (!$partial) {
+            foreach (self::FIELDS as $field) {
+                if (!isset($data[$field])) {
+                    return false;
+                }
+            }
+        }
+
         if (isset($data['email'])) {
-            if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) return false;
-            if (preg_match('#[/\\\\]#', $data['email'])) return false;
+            if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+                return false;
+            }
+            if (str_contains($data['email'], '/') || str_contains($data['email'], '\\')) {
+                return false;
+            }
         }
+
         return true;
     }
 
@@ -40,31 +59,48 @@ class ContactStorage
     {
         $now = time();
         $file = $now . '_' . $data['email'] . '.json';
-        $ok = $this->write($file, [
+
+        $saved = $this->write($file, [
             'email' => $data['email'],
             'subject' => $data['subject'],
             'message' => $data['message'],
             'dateOfCreation' => $now,
             'dateOfLastUpdate' => $now,
         ]);
-        return $ok ? $file : null;
+
+        return $saved ? $file : null;
     }
 
     public function findAll(): array
     {
-        $all = [];
-        foreach (glob($this->dir . '/*.json') ?: [] as $path) {
-            $content = json_decode(file_get_contents($path), true);
-            if (is_array($content)) $all[] = $content;
+        $contacts = [];
+        $files = glob($this->dir . '/*.json');
+
+        if ($files === false) {
+            return [];
         }
-        return $all;
+
+        foreach ($files as $path) {
+            $content = json_decode(file_get_contents($path), true);
+            if (is_array($content)) {
+                $contacts[] = $content;
+            }
+        }
+
+        return $contacts;
     }
 
     public function find(string $file): ?array
     {
-        if (!$this->isValidFilename($file)) return null;
+        if (!$this->isValidFilename($file)) {
+            return null;
+        }
+
         $path = $this->dir . '/' . $file;
-        if (!is_file($path)) return null;
+        if (!is_file($path)) {
+            return null;
+        }
+
         $content = json_decode(file_get_contents($path), true);
         return is_array($content) ? $content : null;
     }
@@ -72,21 +108,30 @@ class ContactStorage
     public function update(string $file, array $changes): ?array
     {
         $content = $this->find($file);
-        if ($content === null) return null;
-        $content = array_merge($content, $changes);
+        if ($content === null) {
+            return null;
+        }
+
+        foreach ($changes as $key => $value) {
+            $content[$key] = $value;
+        }
         $content['dateOfLastUpdate'] = time();
+
         return $this->write($file, $content) ? $content : null;
     }
 
     public function delete(string $file): bool
     {
-        if ($this->find($file) === null) return false;
+        if ($this->find($file) === null) {
+            return false;
+        }
+
         return unlink($this->dir . '/' . $file);
     }
 
     private function write(string $file, array $content): bool
     {
         $json = json_encode($content, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        return @file_put_contents($this->dir . '/' . $file, $json) !== false;
+        return file_put_contents($this->dir . '/' . $file, $json) !== false;
     }
 }
